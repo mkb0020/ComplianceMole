@@ -1,0 +1,2 @@
+# Compliance Mole 
+# Analyzes a CSV chemical data report to determine if each sample is within compliance and produces a reformatted excel document with the compliance status and reason for non-compliance(if applicable)
