@@ -46,11 +46,11 @@ def _norm(s: str) -> str:
 CANONICAL_REPORT_HEADERS = [
     "SAMPLE ID",
     "CHEMICAL",
-    "CONCENTRATION (ppm)",
+    "CONCENTRATION",
     "pH LEVEL",
-    "TEMPERATURE (Celsius)",
-    "PRESSURE (kPa)",
-    "FLOW RATE (L_min)",
+    "TEMPERATURE",
+    "PRESSURE",
+    "FLOW RATE",
     "STATUS",
     "COMMENT",
 ]
@@ -70,33 +70,33 @@ CSV_HEADER_ALIASES = {
     "reagent": "CHEMICAL",
 
     # CONCENTRATION (ppm)
-    "concentration_ppm": "CONCENTRATION (ppm)",
-    "concentration": "CONCENTRATION (ppm)",
-    "conc_ppm": "CONCENTRATION (ppm)",
-    "conc": "CONCENTRATION (ppm)",
-    "concentration_ppm_": "CONCENTRATION (ppm)",
+    "concentration_ppm": "CONCENTRATION",
+    "concentration": "CONCENTRATION",
+    "conc_ppm": "CONCENTRATION",
+    "conc": "CONCENTRATION",
+    "concentration_ppm_": "CONCENTRATION",
 
     # pH LEVEL
     "ph_level": "pH LEVEL",
     "ph": "pH LEVEL",
 
     # TEMPERATURE (Celsius)
-    "temperature_celsius": "TEMPERATURE (Celsius)",
-    "temperature_c": "TEMPERATURE (Celsius)",
-    "temp_c": "TEMPERATURE (Celsius)",
-    "temperature": "TEMPERATURE (Celsius)",
-    "temp": "TEMPERATURE (Celsius)",
+    "temperature_celsius": "TEMPERATURE",
+    "temperature_c": "TEMPERATURE",
+    "temp_c": "TEMPERATURE",
+    "temperature": "TEMPERATURE",
+    "temp": "TEMPERATURE",
 
     # PRESSURE (kPa)
-    "pressure_kpa": "PRESSURE (kPa)",
-    "pressure": "PRESSURE (kPa)",
+    "pressure_kpa": "PRESSURE",
+    "pressure": "PRESSURE",
 
     # FLOW RATE (L_min)
-    "flow_rate_l_min": "FLOW RATE (L_min)",
-    "flowrate_l_min": "FLOW RATE (L_min)",
-    "flow_rate": "FLOW RATE (L_min)",
-    "flowrate": "FLOW RATE (L_min)",
-    "flow": "FLOW RATE (L_min)",
+    "flow_rate_l_min": "FLOW RATE",
+    "flowrate_l_min": "FLOW RATE",
+    "flow_rate": "FLOW RATE",
+    "flowrate": "FLOW RATE",
+    "flow": "FLOW RATE",
 }
 
 # Expected normalized columns for the ranges workbook
@@ -203,11 +203,11 @@ def standardize_csv_headers(df: pd.DataFrame) -> pd.DataFrame:
 
     # Convert numeric columns to numeric (quietly coercing)
     for num_col in [
-        "CONCENTRATION (ppm)",
+        "CONCENTRATION",
         "pH LEVEL",
-        "TEMPERATURE (Celsius)",
-        "PRESSURE (kPa)",
-        "FLOW RATE (L_min)",
+        "TEMPERATURE",
+        "PRESSURE",
+        "FLOW RATE",
     ]:
         if num_col in df.columns:
             df[num_col] = pd.to_numeric(df[num_col], errors="coerce")
@@ -264,11 +264,11 @@ def check_compliance(df: pd.DataFrame, ranges_df: pd.DataFrame) -> pd.DataFrame:
     # Defensive: if required data columns are missing, we still proceed but mark UNKNOWN
     req_cols = [
         "CHEMICAL",
-        "CONCENTRATION (ppm)",
+        "CONCENTRATION",
         "pH LEVEL",
-        "TEMPERATURE (Celsius)",
-        "PRESSURE (kPa)",
-        "FLOW RATE (L_min)",
+        "TEMPERATURE",
+        "PRESSURE",
+        "FLOW RATE",
     ]
     for c in req_cols:
         if c not in df.columns:
@@ -304,11 +304,11 @@ def check_compliance(df: pd.DataFrame, ranges_df: pd.DataFrame) -> pd.DataFrame:
         frmax = limits["Flow_Rate_L_min_Max"]
 
         # Pull row values
-        conc = row["CONCENTRATION (ppm)"]
+        conc = row["CONCENTRATION"]
         ph = row["pH LEVEL"]
-        tempc = row["TEMPERATURE (Celsius)"]
-        press = row["PRESSURE (kPa)"]
-        flow = row["FLOW RATE (L_min)"]
+        tempc = row["TEMPERATURE"]
+        press = row["PRESSURE"]
+        flow = row["FLOW RATE"]
 
         # Validate each metric (NaN counts as violation)
         def _out_of_range(val, lo, hi):
@@ -465,27 +465,53 @@ summary_ws = wb.create_sheet("Summary")
 
 # Styles
 header_fill = PatternFill(start_color="5C6586", end_color="5C6586", fill_type="solid")
+subheader_fill = PatternFill(start_color="ADADAD", end_color="ADADAD", fill_type="solid")
 header_font = Font(color="FFFFFF", bold=True)
-center_bold = Alignment(horizontal="center", vertical="center")
+subheader_font = Font(color="000000", bold=True)
+left_bold = Alignment(horizontal="left", vertical="center")
+subleft_bold = Alignment(horizontal="left", vertical="center")
 
 # Title
-summary_ws.merge_cells('B2:F2')
-summary_ws['B2'] = "COMPLIANCE ANALYSIS"
-summary_ws['B2'].fill = header_fill
-summary_ws['B2'].font = header_font
-summary_ws['B2'].alignment = center_bold
+#summary_ws.merge_cells('B2:Q2')
+summary_ws['B1'] = "COMPLIANCE ANALYSIS"
+summary_ws['B1'].fill = header_fill
+summary_ws['B1'].font = header_font
+summary_ws['B1'].alignment = left_bold
 
 # Summary info
 summary_ws['B3'] = "Completed By:"
 #summary_ws['D3'] = user_info['first']
+summary_ws['D3'] = "MK Barriault"
 summary_ws['B4'] = "Date:"
 #summary_ws['D4'] = user_info['DateToday']
+summary_ws['D4'] = "8/15/2025"
 summary_ws['B5'] = "Company:"
 #summary_ws['D5'] = user_info['CompanyName']
-
+summary_ws['D5'] = "Ion Labs"
+summary_ws['B6'] = "Total Samples:"
+#summary_ws['D5'] = 
+summary_ws['D6'] = "100"
 # Overall Score label
-summary_ws['B7'] = "Weighted Overall Score:"
-summary_ws['D7'] = 0  # will update later
+summary_ws['B7'] = "Score:"
+summary_ws['D7'] = "49"  # will update later
+
+for col in ['B','C']:
+    summary_ws[f"{col}3"].fill = subheader_fill
+    summary_ws[f"{col}3"].font = subheader_font
+    summary_ws[f"{col}3"].alignment = subleft_bold
+
+    
+
+# Units of measure reference
+summary_ws['N3'] = "UNITS OF MEASURE"
+summary_ws['N4'] = "Concentration ="
+summary_ws['P4'] = "ppm"
+summary_ws['N5'] = "Temperature ="
+summary_ws['P5'] = "Celcius"
+summary_ws['N6'] = "Pressure ="
+summary_ws['P6'] = "kPa"
+summary_ws['N7'] = "FlowRate ="
+summary_ws['P7'] = "L/min" 
 
 # ---------------------------
 # CHEMICALS TABLE
@@ -494,23 +520,29 @@ chemicals = df['CHEMICAL'].unique()
 chemicals.sort()
 start_row = 11
 
+summary_ws['B9'] = "ANALYSIS SUMMARY"
 summary_ws['B10'] = "Chemical"
 summary_ws['C10'] = "Total Samples"
 summary_ws['E10'] = "Acceptable Samples"
 summary_ws['G10'] = "Non-Compliant Samples"
-summary_ws['I10'] = "Compliance %"
+summary_ws['I10'] = "Compliance Score"
 summary_ws['K10'] = "Priority"
 
-for col in ['B','C','E','G','I','K']:
-    summary_ws[f"{col}10"].fill = header_fill
-    summary_ws[f"{col}10"].font = header_font
-    summary_ws[f"{col}10"].alignment = center_bold
+for col in ['B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q']:
+    summary_ws[f"{col}9"].fill = header_fill
+    summary_ws[f"{col}9"].font = header_font
+    summary_ws[f"{col}9"].alignment = left_bold
+
+for col in ['B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q']:
+    summary_ws[f"{col}10"].fill = subheader_fill
+    summary_ws[f"{col}10"].font = subheader_font
+    summary_ws[f"{col}10"].alignment = subleft_bold
 
 row = start_row
 for chem in chemicals:
     chem_df = df[df['CHEMICAL'] == chem]
     total = len(chem_df)
-    acceptable = len(chem_df[chem_df['STATUS'] == 'Acceptable'])
+    acceptable = len(chem_df[chem_df['STATUS'] == 'COMPLIANT'])
     noncompliant = total - acceptable
     percent = acceptable / total if total > 0 else 0
 
@@ -532,51 +564,66 @@ for chem in chemicals:
     row += 1
 
 # Totals row
+summary_ws[f"B{row}"] = "TOTAL:"
 summary_ws[f"C{row}"] = f"=SUM(C{start_row}:C{row-1})"
 summary_ws[f"E{row}"] = f"=SUM(E{start_row}:E{row-1})"
 summary_ws[f"G{row}"] = f"=SUM(G{start_row}:G{row-1})"
+
+for col in ['B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q']:
+    summary_ws[f"{col}21"].fill = subheader_fill
+    summary_ws[f"{col}21"].font = subheader_font
+    summary_ws[f"{col}21"].alignment = subleft_bold
 
 # Weighted overall score formula in D7
 weights_formula_parts = []
 for r in range(start_row, row):
     weights_formula_parts.append(f"I{r}*(C{r}/100)")
-summary_ws['D7'] = f"={'+'.join(weights_formula_parts)}"
-summary_ws['D7'].number_format = '0.00%'
+summary_ws['I21'] = f"={'+'.join(weights_formula_parts)}"
+summary_ws['I21'].number_format = '0.00%'
 
 # ---------------------------
 # RANGES TABLE
 # ---------------------------
+ranges_header = row + 2
 ranges_start = row + 3
-summary_ws.merge_cells(f"B{ranges_start}:F{ranges_start}")
-summary_ws[f"B{ranges_start}"] = "RANGES"
-summary_ws[f"B{ranges_start}"].fill = header_fill
-summary_ws[f"B{ranges_start}"].font = header_font
-summary_ws[f"B{ranges_start}"].alignment = center_bold
+summary_ws.merge_cells(f"B{ranges_header}:Q{ranges_header}")
+summary_ws[f"B{ranges_header}"] = "RANGES"
+summary_ws[f"B{ranges_header}"].fill = header_fill
+summary_ws[f"B{ranges_header}"].font = header_font
+summary_ws[f"B{ranges_header}"].alignment = left_bold
 
 ranges_headers = ["Chemical", "Min Concentration", "Max Concentration", "Avg Concentration",
                   "Min pH", "Max pH", "Avg pH",
-                  "Min Temp", "Max Temp", "Avg Temp"]
+                  "Min Temp", "Max Temp", "Avg Temp",
+                  "Min Press", "Max Press", "Avg Press",
+                  "Min Flow", "Max Flow", "Avg Flow"]
 
 for col_idx, header in enumerate(ranges_headers, start=2):
     cell = summary_ws.cell(row=ranges_start+1, column=col_idx)
     cell.value = header
-    cell.fill = header_fill
-    cell.font = header_font
-    cell.alignment = center_bold
+    cell.fill = subheader_fill
+    cell.font = subheader_font
+    cell.alignment = subleft_bold
 
 r = ranges_start + 2
 for chem in chemicals:
     chem_df = df[df['CHEMICAL'] == chem]
     summary_ws.cell(row=r, column=2, value=chem)
-    summary_ws.cell(row=r, column=3, value=chem_df['CONCENTRATION (ppm)'].min())
-    summary_ws.cell(row=r, column=4, value=chem_df['CONCENTRATION (ppm)'].max())
-    summary_ws.cell(row=r, column=5, value=chem_df['CONCENTRATION (ppm)'].mean())
+    summary_ws.cell(row=r, column=3, value=chem_df['CONCENTRATION'].min())
+    summary_ws.cell(row=r, column=4, value=chem_df['CONCENTRATION'].max())
+    summary_ws.cell(row=r, column=5, value=chem_df['CONCENTRATION'].mean())
     summary_ws.cell(row=r, column=6, value=chem_df['pH LEVEL'].min())
     summary_ws.cell(row=r, column=7, value=chem_df['pH LEVEL'].max())
     summary_ws.cell(row=r, column=8, value=chem_df['pH LEVEL'].mean())
-    summary_ws.cell(row=r, column=9, value=chem_df['TEMPERATURE (Celsius)'].min())
-    summary_ws.cell(row=r, column=10, value=chem_df['TEMPERATURE (Celsius)'].max())
-    summary_ws.cell(row=r, column=11, value=chem_df['TEMPERATURE (Celsius)'].mean())
+    summary_ws.cell(row=r, column=9, value=chem_df['TEMPERATURE'].min())
+    summary_ws.cell(row=r, column=10, value=chem_df['TEMPERATURE'].max())
+    summary_ws.cell(row=r, column=11, value=chem_df['TEMPERATURE'].mean())
+    summary_ws.cell(row=r, column=12, value=chem_df['PRESSURE'].min())
+    summary_ws.cell(row=r, column=13, value=chem_df['PRESSURE'].max())
+    summary_ws.cell(row=r, column=14, value=chem_df['PRESSURE'].mean())
+    summary_ws.cell(row=r, column=15, value=chem_df['FLOW RATE'].min())
+    summary_ws.cell(row=r, column=16, value=chem_df['FLOW RATE'].max())
+    summary_ws.cell(row=r, column=17, value=chem_df['FLOW RATE'].mean())
     r += 1
 
 
