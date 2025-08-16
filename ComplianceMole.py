@@ -11,7 +11,8 @@
 import pandas as pd
 import openpyxl
 from openpyxl.utils import get_column_letter
-from tkinter import Tk, simpledialog, filedialog
+import tkinter as tk
+from tkinter import Tk, simpledialog, filedialog, Label, Entry, Button
 from datetime import datetime
 import os
 
@@ -130,24 +131,67 @@ def load_csv(file_path):
 
 
 
-def get_user_info():
-    root = Tk()
-    root.withdraw()
-    first = simpledialog.askstring("User Info", "Enter First Name:") or ""
-    middle = simpledialog.askstring("User Info", "Enter Middle Name (Optional):") or ""
-    last = simpledialog.askstring("User Info", "Enter Last Name:") or ""
-    company = simpledialog.askstring("User Info", "Enter Company Name:") or ""
+#def get_user_info():
+  #  root = Tk()
+  #  root.withdraw()
+  #  first = simpledialog.askstring("User Info", "Enter First Name:") or ""
+  #  middle = simpledialog.askstring("User Info", "Enter Middle Name (Optional):") or ""
+  #  last = simpledialog.askstring("User Info", "Enter Last Name:") or ""
+  #  company = simpledialog.askstring("User Info", "Enter Company Name:") or ""
 
-    return {
-        "FirstName": first,
-        "MiddleName": middle,
-        "LastName": last,
-        "FirstIntl": first[:1],
-        "MidIntl": middle[:1],
-        "LastIntl": last[:1],
-        "CompanyName": company,
-        "DateToday": datetime.today().strftime("%Y%m%d"),
-    }
+ #   return {
+ #       "FirstName": first,
+ #       "MiddleName": middle,
+ #       "LastName": last,
+ #       "FirstIntl": first[:1],
+ #       "MidIntl": middle[:1],
+ #       "LastIntl": last[:1],
+ #       "CompanyName": company,
+ #       "DateToday": datetime.today().strftime("%Y%m%d"),
+ #   }
+
+
+def get_user_info():
+    info = {}
+
+    def on_submit():
+        info["FirstName"] = entry_first.get()
+        info["MiddleName"] = entry_middle.get()
+        info["LastName"] = entry_last.get()
+        info["FirstIntl"] = entry_first.get()[:1]
+        info["MidIntl"] = entry_middle.get()[:1]
+        info["LastIntl"] = entry_last.get()[:1]
+        info["CompanyName"] = entry_company.get()
+        info["DateToday"] = datetime.today().strftime("%Y%m%d")
+
+        root.quit()    # exit the Tk loop
+        root.destroy() # close the window
+
+    root = Tk()
+    root.title("User Info")
+
+    Label(root, text="First Name:").grid(row=0, column=0, sticky="e")
+    entry_first = Entry(root)
+    entry_first.grid(row=0, column=1)
+
+    Label(root, text="Middle Name:").grid(row=1, column=0, sticky="e")
+    entry_middle = Entry(root)
+    entry_middle.grid(row=1, column=1)
+
+    Label(root, text="Last Name:").grid(row=2, column=0, sticky="e")
+    entry_last = Entry(root)
+    entry_last.grid(row=2, column=1)
+
+    Label(root, text="Company Name:").grid(row=3, column=0, sticky="e")
+    entry_company = Entry(root)
+    entry_company.grid(row=3, column=1)
+
+    Button(root, text="Submit", command=on_submit).grid(row=4, column=0, columnspan=2, pady=10)
+
+    root.mainloop()
+    return info
+
+
 
 def get_save_path(user_info):
     Tk().withdraw()
@@ -339,12 +383,37 @@ def check_compliance(df: pd.DataFrame, ranges_df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
+
+def main():
+    # 1. Get user info
+    user_info = get_user_info()
+    print("Collected user info:", user_info)
+
+    # 2. Ask user to select CSV file (your existing code here)
+    from tkinter import filedialog
+    root = Tk()
+    root.withdraw()  # hide root window
+    csv_file = filedialog.askopenfilename(
+        title="Select CSV File",
+        filetypes=[("CSV Files", "*.csv")]
+    )
+    root.destroy()
+
+    print("Selected file:", csv_file)
+
+    # 3. Now you can use user_info + csv_file in the rest of your script
+    save_path = f"./{user_info['CompanyName']}_{user_info['LastName']}_{user_info['DateToday']}.xlsx"
+    print("Save path will be:", save_path)
+
+
 # -------------------- Main --------------------
 if __name__ == "__main__":
+    
+    
     csv_path = select_file()
     if not csv_path:
         print("No file selected. Exiting.")
-        raise SystemExit
+        raise SystemExit#
 
     df, last_row = load_csv(csv_path)
 
@@ -353,6 +422,11 @@ if __name__ == "__main__":
     if not save_path:
         print("No save location chosen. Exiting.")
         raise SystemExit
+
+
+ 
+
+
 
     # Standardize CSV headers (fixes your 7 vs 9 mismatch)
     df = standardize_csv_headers(df)
@@ -476,6 +550,9 @@ left_bold = Alignment(horizontal="left", vertical="center")
 right_bold = Alignment(horizontal="right", vertical="center")
 center_bold = Alignment(horizontal="center", vertical="center")
 
+
+
+
 # --- Title ---
 summary_ws['B1'] = "COMPLIANCE ANALYSIS"
 summary_ws['B1'].fill = header_fill
@@ -519,6 +596,11 @@ for rr in range(4, 8):
         c.fill = white_fill
         #c.font = subheader_font
         c.alignment = right_bold
+
+ 
+summary_ws["D3"].alignment = right_bold
+summary_ws["N3"].alignment = center_bold
+summary_ws["N3"].fill = subheader_fill
 
 # ---------------------------
 # CHEMICALS TABLE
@@ -574,20 +656,29 @@ def apply_thick_outline(ws, row, start_col, end_col):
         cell = ws.cell(row=row, column=col)
 
         # Default to existing borders
-        left, right, top, bottom = cell.border.left, cell.border.right, cell.border.top, cell.border.bottom
+        #left, right, top, bottom = cell.border.left, cell.border.right, cell.border.top, cell.border.bottom
+        left, right = cell.border.left, cell.border.right
 
         if col == start_col:
             left = thick_side
         if col == end_col:
             right = thick_side
-        top = thick_side
-        bottom = thick_side
+        #top = thick_side
+        #bottom = thick_side
 
-        cell.border = Border(left=left, right=right, top=top, bottom=bottom)
+        #cell.border = Border(left=left, right=right, top=top, bottom=bottom)
+        cell.border = Border(left=left, right=right)
 
 
 # Fill in chemical rows
 row = start_row
+
+apply_thick_outline(summary_ws, row-1, 3, 4)
+apply_thick_outline(summary_ws, row-1, 5, 6)
+apply_thick_outline(summary_ws, row-1, 7, 8)
+apply_thick_outline(summary_ws, row-1, 9, 10)
+apply_thick_outline(summary_ws, row-1, 11, 12)
+
 for chem in chemicals:
     chem_df = df[df['CHEMICAL'] == chem]
     total = len(chem_df)
@@ -600,16 +691,24 @@ for chem in chemicals:
     # Merge groups and assign values
     summary_ws.merge_cells(start_row=row, start_column=3, end_row=row, end_column=4)  # C&D
     summary_ws[f"C{row}"] = total
+    summary_ws[f"C{row}"].fill = white_fill
+    summary_ws[f"C{row}"].alignment = center_bold
 
     summary_ws.merge_cells(start_row=row, start_column=5, end_row=row, end_column=6)  # E&F
     summary_ws[f"E{row}"] = acceptable
+    summary_ws[f"E{row}"].fill = white_fill
+    summary_ws[f"E{row}"].alignment = center_bold
 
     summary_ws.merge_cells(start_row=row, start_column=7, end_row=row, end_column=8)  # G&H
     summary_ws[f"G{row}"] = noncompliant
+    summary_ws[f"G{row}"].fill = white_fill
+    summary_ws[f"G{row}"].alignment = center_bold
 
     summary_ws.merge_cells(start_row=row, start_column=9, end_row=row, end_column=10)  # I&J
     summary_ws[f"I{row}"] = percent
     summary_ws[f"I{row}"].number_format = '0.00%'
+    summary_ws[f"I{row}"].fill = white_fill
+    summary_ws[f"I{row}"].alignment = center_bold
 
     summary_ws.merge_cells(start_row=row, start_column=11, end_row=row, end_column=12)  # K&L
     if percent < 0.45:
@@ -618,6 +717,9 @@ for chem in chemicals:
         summary_ws[f"K{row}"] = "LOW"
     else:
         summary_ws[f"K{row}"] = "MEDIUM"
+
+    summary_ws[f"K{row}"].fill = white_fill
+    summary_ws[f"K{row}"].alignment = center_bold
 
     # Style chemical name col
     summary_ws[f"B{row}"].fill = light_fill
@@ -633,13 +735,20 @@ for chem in chemicals:
 
     row += 1
 
-# --- Totals row (don’t merge these, but keep style) ---
-summary_ws[f"B{row}"] = "TOTAL:"
-summary_ws[f"C{row}"] = f"=SUM(C{start_row}:C{row-1})"
-summary_ws[f"E{row}"] = f"=SUM(E{start_row}:E{row-1})"
-summary_ws[f"G{row}"] = f"=SUM(G{start_row}:G{row-1})"
 
-for col_idx in range(2, 12):  # B..K
+# --- Totals row (don’t merge these, but keep style) ---
+
+summary_ws[f"B{row}"] = "TOTAL:"
+summary_ws.merge_cells(start_row=row, start_column=3, end_row=row, end_column=4)
+summary_ws[f"C{row}"] = f"=SUM(C{start_row}:C{row-1})"
+summary_ws.merge_cells(start_row=row, start_column=5, end_row=row, end_column=6)
+summary_ws[f"E{row}"] = f"=SUM(E{start_row}:E{row-1})"
+summary_ws.merge_cells(start_row=row, start_column=7, end_row=row, end_column=8)
+summary_ws[f"G{row}"] = f"=SUM(G{start_row}:G{row-1})"
+summary_ws.merge_cells(start_row=row, start_column=9, end_row=row, end_column=10)
+
+
+for col_idx in range(2, 13):  # B..K
     cell = summary_ws.cell(row=row, column=col_idx)
     cell.fill = subheader_fill
     cell.font = subheader_font
@@ -649,6 +758,19 @@ for col_idx in range(2, 12):  # B..K
 weights_formula_parts = [f"I{r}*(C{r}/100)" for r in range(start_row, row)]
 summary_ws['I' + str(row)] = f"={'+'.join(weights_formula_parts)}"
 summary_ws['I' + str(row)].number_format = '0.00%'
+summary_ws.merge_cells(start_row=row, start_column=11, end_row=row, end_column=12)
+
+
+
+apply_thick_outline(summary_ws, row, 3, 4)
+apply_thick_outline(summary_ws, row, 5, 6)
+apply_thick_outline(summary_ws, row, 7, 8)
+apply_thick_outline(summary_ws, row, 9, 10)
+apply_thick_outline(summary_ws, row, 11, 12)
+
+summary_ws[f"M{row}"].fill = subheader_fill
+summary_ws.merge_cells(start_row=row, start_column=13, end_row=row, end_column=17)
+
 
 
 summary_ws['D7'] = f"=I{row}"
@@ -694,7 +816,7 @@ for start_col, _ in category_blocks:
         cell = summary_ws.cell(row=ranges_start+1, column=col, value=sub)
         cell.fill = light_fill
         cell.font = subheader_font
-        cell.alignment = left_bold
+        cell.alignment = center_bold
 
 
 
@@ -703,21 +825,21 @@ r = ranges_start + 2
 for chem in chemicals:
     chem_df = df[df['CHEMICAL'] == chem]
     summary_ws.cell(row=r, column=2, value=chem).fill = light_fill
-    summary_ws.cell(row=r, column=3, value=chem_df['CONCENTRATION'].min())
-    summary_ws.cell(row=r, column=4, value=chem_df['CONCENTRATION'].max())
-    summary_ws.cell(row=r, column=5, value=chem_df['CONCENTRATION'].mean())
-    summary_ws.cell(row=r, column=6, value=chem_df['pH LEVEL'].min())
-    summary_ws.cell(row=r, column=7, value=chem_df['pH LEVEL'].max())
-    summary_ws.cell(row=r, column=8, value=chem_df['pH LEVEL'].mean())
-    summary_ws.cell(row=r, column=9, value=chem_df['TEMPERATURE'].min())
-    summary_ws.cell(row=r, column=10, value=chem_df['TEMPERATURE'].max())
-    summary_ws.cell(row=r, column=11, value=chem_df['TEMPERATURE'].mean())
-    summary_ws.cell(row=r, column=12, value=chem_df['PRESSURE'].min())
-    summary_ws.cell(row=r, column=13, value=chem_df['PRESSURE'].max())
-    summary_ws.cell(row=r, column=14, value=chem_df['PRESSURE'].mean())
-    summary_ws.cell(row=r, column=15, value=chem_df['FLOW RATE'].min())
-    summary_ws.cell(row=r, column=16, value=chem_df['FLOW RATE'].max())
-    summary_ws.cell(row=r, column=17, value=chem_df['FLOW RATE'].mean())
+    summary_ws.cell(row=r, column=3, value=chem_df['CONCENTRATION'].min()).alignment = center_bold
+    summary_ws.cell(row=r, column=4, value=chem_df['CONCENTRATION'].max()).alignment = center_bold
+    summary_ws.cell(row=r, column=5, value=chem_df['CONCENTRATION'].mean()).alignment = center_bold
+    summary_ws.cell(row=r, column=6, value=chem_df['pH LEVEL'].min()).alignment = center_bold
+    summary_ws.cell(row=r, column=7, value=chem_df['pH LEVEL'].max()).alignment = center_bold
+    summary_ws.cell(row=r, column=8, value=chem_df['pH LEVEL'].mean()).alignment = center_bold
+    summary_ws.cell(row=r, column=9, value=chem_df['TEMPERATURE'].min()).alignment = center_bold
+    summary_ws.cell(row=r, column=10, value=chem_df['TEMPERATURE'].max()).alignment = center_bold
+    summary_ws.cell(row=r, column=11, value=chem_df['TEMPERATURE'].mean()).alignment = center_bold
+    summary_ws.cell(row=r, column=12, value=chem_df['PRESSURE'].min()).alignment = center_bold
+    summary_ws.cell(row=r, column=13, value=chem_df['PRESSURE'].max()).alignment = center_bold
+    summary_ws.cell(row=r, column=14, value=chem_df['PRESSURE'].mean()).alignment = center_bold
+    summary_ws.cell(row=r, column=15, value=chem_df['FLOW RATE'].min()).alignment = center_bold
+    summary_ws.cell(row=r, column=16, value=chem_df['FLOW RATE'].max()).alignment = center_bold
+    summary_ws.cell(row=r, column=17, value=chem_df['FLOW RATE'].mean()).alignment = center_bold
     r += 1
 
 
@@ -772,6 +894,8 @@ def apply_border(ws, cell_range):
 apply_border(ws, "B1:Q1")
 apply_border(ws, "B3:E7")
 apply_border(ws, "N3:Q7")
+apply_border(ws, "B9:Q9")
+apply_border(ws, "C10:Q10")
 
 # === Dynamic border ranges ===
 num_chemicals = len(chemicals)  # <-- replace with however you track chemicals
@@ -779,6 +903,7 @@ num_chemicals = len(chemicals)  # <-- replace with however you track chemicals
 # First dynamic block (starts row 9)
 start1, end1 = 9, 9 + num_chemicals + 2  # +1 for header row
 apply_border(ws, f"B{start1}:Q{end1}")
+apply_border(ws, f"B{end1}:Q{end1}")
 
 # Second dynamic block (starts row right after + 2 rows spacing)
 start2 = end1 + 2
@@ -854,3 +979,14 @@ for rng in merge_ranges:
 # Save final formatted file
 wb.save(save_path)
 print(f"Final formatted report saved at: {save_path}")
+
+
+
+#if __name__ == "__main__":
+ #   user_info = get_user_info()
+  #  print("Collected user info:", user_info)
+
+    # Example: build save path right away
+   # save_path = f"./{user_info['CompanyName']}_{user_info['LastName']}_{user_info['DateToday']}.xlsx"
+    #print("Save path:", save_path)
+
