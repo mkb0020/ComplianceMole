@@ -466,6 +466,7 @@ summary_ws = wb.create_sheet("Summary")
 # Styles
 header_fill = PatternFill(start_color="5C6586", end_color="5C6586", fill_type="solid")
 subheader_fill = PatternFill(start_color="ADADAD", end_color="ADADAD", fill_type="solid")
+light_fill = PatternFill(start_color="E8E8E8", end_color="E8E8E8", fill_type="solid")
 header_font = Font(color="FFFFFF", bold=True)
 subheader_font = Font(color="000000", bold=True)
 left_bold = Alignment(horizontal="left", vertical="center")
@@ -495,12 +496,12 @@ summary_ws['D6'] = "100"
 summary_ws['B7'] = "Score:"
 summary_ws['D7'] = "49"  # will update later
 
-for col in ['B','C']:
-    summary_ws[f"{col}3"].fill = subheader_fill
-    summary_ws[f"{col}3"].font = subheader_font
-    summary_ws[f"{col}3"].alignment = subleft_bold
+#for col in ['B','C']:
+    #summary_ws[f"{col}3"].fill = subheader_fill
+    #summary_ws[f"{col}3"].font = subheader_font
+    #summary_ws[f"{col}3"].alignment = subleft_bold
 
-    
+ 
 
 # Units of measure reference
 summary_ws['N3'] = "UNITS OF MEASURE"
@@ -512,6 +513,14 @@ summary_ws['N6'] = "Pressure ="
 summary_ws['P6'] = "kPa"
 summary_ws['N7'] = "FlowRate ="
 summary_ws['P7'] = "L/min" 
+
+for row in ['3','4','5','6','7']:
+    summary_ws[f"B{row}"].fill = light_fill 
+    summary_ws[f"B{row}"].font = subheader_font
+    summary_ws[f"B{row}"].alignment = subleft_bold 
+    summary_ws[f"N{row}"].fill = light_fill 
+    summary_ws[f"N{row}"].font = subheader_font
+    summary_ws[f"N{row}"].alignment = subleft_bold  
 
 # ---------------------------
 # CHEMICALS TABLE
@@ -563,6 +572,7 @@ for chem in chemicals:
 
     row += 1
 
+
 # Totals row
 summary_ws[f"B{row}"] = "TOTAL:"
 summary_ws[f"C{row}"] = f"=SUM(C{start_row}:C{row-1})"
@@ -592,16 +602,19 @@ summary_ws[f"B{ranges_header}"].fill = header_fill
 summary_ws[f"B{ranges_header}"].font = header_font
 summary_ws[f"B{ranges_header}"].alignment = left_bold
 
-ranges_headers = ["Chemical", "Min Concentration", "Max Concentration", "Avg Concentration",
+
+
+
+ranges_subheaders = ["Chemical", "Min Concentration", "Max Concentration", "Avg Concentration",
                   "Min pH", "Max pH", "Avg pH",
                   "Min Temp", "Max Temp", "Avg Temp",
                   "Min Press", "Max Press", "Avg Press",
                   "Min Flow", "Max Flow", "Avg Flow"]
 
-for col_idx, header in enumerate(ranges_headers, start=2):
+for col_idx, header in enumerate(ranges_subheaders, start=2):
     cell = summary_ws.cell(row=ranges_start+1, column=col_idx)
     cell.value = header
-    cell.fill = subheader_fill
+    cell.fill = light_fill
     cell.font = subheader_font
     cell.alignment = subleft_bold
 
@@ -626,6 +639,16 @@ for chem in chemicals:
     summary_ws.cell(row=r, column=17, value=chem_df['FLOW RATE'].mean())
     r += 1
 
+
+for row in ['11','12','13','14','15','16','17','18','19','20']:
+    summary_ws[f"B{row}"].fill = light_fill 
+    summary_ws[f"B{row}"].font = subheader_font
+    summary_ws[f"B{row}"].alignment = subleft_bold
+
+for row in ['26','27','28','29','30','31','32','33','34','35']:
+    summary_ws[f"B{row}"].fill = light_fill 
+    summary_ws[f"B{row}"].font = subheader_font
+    summary_ws[f"B{row}"].alignment = subleft_bold
 
 
 # Save final formatted file
