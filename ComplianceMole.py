@@ -128,6 +128,8 @@ def load_csv(file_path):
     last_row = len(df)
     return df, last_row
 
+
+
 def get_user_info():
     root = Tk()
     root.withdraw()
@@ -458,95 +460,133 @@ for row in range(1, last_row + 1):
 
 
 
-# ---------------------------
 # CREATE "Summary" SHEET
-# ---------------------------
 summary_ws = wb.create_sheet("Summary")
 
-# Styles
+num_chems = last_row - 1
+
+# --- Styles ---
 header_fill = PatternFill(start_color="5C6586", end_color="5C6586", fill_type="solid")
 subheader_fill = PatternFill(start_color="ADADAD", end_color="ADADAD", fill_type="solid")
 light_fill = PatternFill(start_color="E8E8E8", end_color="E8E8E8", fill_type="solid")
+white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
 header_font = Font(color="FFFFFF", bold=True)
 subheader_font = Font(color="000000", bold=True)
 left_bold = Alignment(horizontal="left", vertical="center")
-subleft_bold = Alignment(horizontal="left", vertical="center")
+right_bold = Alignment(horizontal="right", vertical="center")
+center_bold = Alignment(horizontal="center", vertical="center")
 
-# Title
-#summary_ws.merge_cells('B2:Q2')
+# --- Title ---
 summary_ws['B1'] = "COMPLIANCE ANALYSIS"
 summary_ws['B1'].fill = header_fill
 summary_ws['B1'].font = header_font
 summary_ws['B1'].alignment = left_bold
 
-# Summary info
-summary_ws['B3'] = "Completed By:"
-#summary_ws['D3'] = user_info['first']
-summary_ws['D3'] = "MK Barriault"
-summary_ws['B4'] = "Date:"
-#summary_ws['D4'] = user_info['DateToday']
-summary_ws['D4'] = "8/15/2025"
-summary_ws['B5'] = "Company:"
-#summary_ws['D5'] = user_info['CompanyName']
-summary_ws['D5'] = "Ion Labs"
-summary_ws['B6'] = "Total Samples:"
-#summary_ws['D5'] = 
-summary_ws['D6'] = "100"
-# Overall Score label
-summary_ws['B7'] = "Score:"
-summary_ws['D7'] = "49"  # will update later
+# --- Summary Info Section ---
+summary_info = {
+    "B3": "Completed By:", "D3": "MK Barriault",  # swap in user_info if you want
+    "B4": "Date:", "D4": "8/15/2025",
+    "B5": "Company:", "D5": "Ion Labs",
+    "B6": "Total Samples:", "D6": "100",
+    "B7": "Score:", "D7": "49"
+}
+for cell, value in summary_info.items():
+    summary_ws[cell] = value
 
-#for col in ['B','C']:
-    #summary_ws[f"{col}3"].fill = subheader_fill
-    #summary_ws[f"{col}3"].font = subheader_font
-    #summary_ws[f"{col}3"].alignment = subleft_bold
+# --- Units of measure ---
+units_info = {
+    "N3": "UNITS OF MEASURE",
+    "N4": "Concentration =", "P4": "ppm",
+    "N5": "Temperature =", "P5": "Celcius",
+    "N6": "Pressure =", "P6": "kPa",
+    "N7": "FlowRate =", "P7": "L/min"
+}
+for cell, value in units_info.items():
+    summary_ws[cell] = value
 
- 
+# Style summary + units section dynamically
+for r in range(3, 8):
+    for col in ["B", "N"]:
+        c = summary_ws[f"{col}{r}"]
+        c.fill = light_fill
+        c.font = subheader_font
+        c.alignment = left_bold
 
-# Units of measure reference
-summary_ws['N3'] = "UNITS OF MEASURE"
-summary_ws['N4'] = "Concentration ="
-summary_ws['P4'] = "ppm"
-summary_ws['N5'] = "Temperature ="
-summary_ws['P5'] = "Celcius"
-summary_ws['N6'] = "Pressure ="
-summary_ws['P6'] = "kPa"
-summary_ws['N7'] = "FlowRate ="
-summary_ws['P7'] = "L/min" 
 
-for row in ['3','4','5','6','7']:
-    summary_ws[f"B{row}"].fill = light_fill 
-    summary_ws[f"B{row}"].font = subheader_font
-    summary_ws[f"B{row}"].alignment = subleft_bold 
-    summary_ws[f"N{row}"].fill = light_fill 
-    summary_ws[f"N{row}"].font = subheader_font
-    summary_ws[f"N{row}"].alignment = subleft_bold  
+for rr in range(4, 8):
+    for col in ["D", "P"]:
+        c = summary_ws[f"{col}{rr}"]
+        c.fill = white_fill
+        #c.font = subheader_font
+        c.alignment = right_bold
 
 # ---------------------------
 # CHEMICALS TABLE
 # ---------------------------
-chemicals = df['CHEMICAL'].unique()
-chemicals.sort()
+chemicals = sorted(df['CHEMICAL'].unique())
 start_row = 11
 
-summary_ws['B9'] = "ANALYSIS SUMMARY"
-summary_ws['B10'] = "Chemical"
-summary_ws['C10'] = "Total Samples"
-summary_ws['E10'] = "Acceptable Samples"
-summary_ws['G10'] = "Non-Compliant Samples"
-summary_ws['I10'] = "Compliance Score"
-summary_ws['K10'] = "Priority"
 
-for col in ['B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q']:
-    summary_ws[f"{col}9"].fill = header_fill
-    summary_ws[f"{col}9"].font = header_font
-    summary_ws[f"{col}9"].alignment = left_bold
+# === Category headers (go in merged blocks) ===
+summary_categories = ["TOTAL SAMPLES", "PASS", "FAIL", "SCORE", "PRIORITY"]
+summary_blocks = [(3, 4), (5, 6), (7, 8), (9, 10), (11, 12)]  # (start_col, end_col)
 
-for col in ['B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q']:
-    summary_ws[f"{col}10"].fill = subheader_fill
-    summary_ws[f"{col}10"].font = subheader_font
-    summary_ws[f"{col}10"].alignment = subleft_bold
+for sumcat, (start_c, end_c) in zip(summary_categories, summary_blocks):
+    # Merge the block
+    summary_ws.merge_cells(
+        start_row=10, start_column=start_c,
+        end_row=10, end_column=end_c
+    )
+    # Put the category name in the first cell of the block
+    cell = summary_ws.cell(row=10, column=start_c, value=sumcat)
+    cell.fill = subheader_fill
+    cell.font = subheader_font
+    cell.alignment = center_bold
 
+#summary_ws['C10'] = "Total Samples"
+#summary_ws['E10'] = "Compliant"
+#summary_ws['G10'] = "Non-Compliant"
+#summary_ws['I10'] = "Compliance Score"
+#summary_ws['K10'] = "Priority"
+
+for col_idx in range(2, 18):  # B..Q
+    cell = summary_ws.cell(row=10, column=col_idx)
+    cell.fill = subheader_fill
+    #cell.font = subheader_font
+   
+
+# Header bar formatting across row 9
+for col_idx in range(2, 12):  # B..K
+    cell = summary_ws.cell(row=9, column=col_idx)
+    cell.fill = header_fill
+    cell.font = header_font
+    cell.alignment = left_bold
+
+
+from openpyxl.styles import Border, Side
+
+# Define thick side
+thick_side = Side(border_style="thick", color="000000")
+
+def apply_thick_outline(ws, row, start_col, end_col):
+    """Draws a thick box around merged cells in a single row."""
+    for col in range(start_col, end_col+1):
+        cell = ws.cell(row=row, column=col)
+
+        # Default to existing borders
+        left, right, top, bottom = cell.border.left, cell.border.right, cell.border.top, cell.border.bottom
+
+        if col == start_col:
+            left = thick_side
+        if col == end_col:
+            right = thick_side
+        top = thick_side
+        bottom = thick_side
+
+        cell.border = Border(left=left, right=right, top=top, bottom=bottom)
+
+
+# Fill in chemical rows
 row = start_row
 for chem in chemicals:
     chem_df = df[df['CHEMICAL'] == chem]
@@ -556,13 +596,22 @@ for chem in chemicals:
     percent = acceptable / total if total > 0 else 0
 
     summary_ws[f"B{row}"] = chem
+
+    # Merge groups and assign values
+    summary_ws.merge_cells(start_row=row, start_column=3, end_row=row, end_column=4)  # C&D
     summary_ws[f"C{row}"] = total
+
+    summary_ws.merge_cells(start_row=row, start_column=5, end_row=row, end_column=6)  # E&F
     summary_ws[f"E{row}"] = acceptable
+
+    summary_ws.merge_cells(start_row=row, start_column=7, end_row=row, end_column=8)  # G&H
     summary_ws[f"G{row}"] = noncompliant
+
+    summary_ws.merge_cells(start_row=row, start_column=9, end_row=row, end_column=10)  # I&J
     summary_ws[f"I{row}"] = percent
     summary_ws[f"I{row}"].number_format = '0.00%'
 
-    # Priority
+    summary_ws.merge_cells(start_row=row, start_column=11, end_row=row, end_column=12)  # K&L
     if percent < 0.45:
         summary_ws[f"K{row}"] = "HIGH"
     elif percent > 0.55:
@@ -570,32 +619,46 @@ for chem in chemicals:
     else:
         summary_ws[f"K{row}"] = "MEDIUM"
 
+    # Style chemical name col
+    summary_ws[f"B{row}"].fill = light_fill
+    summary_ws[f"B{row}"].font = subheader_font
+    summary_ws[f"B{row}"].alignment = left_bold
+
+    # Apply thick outline borders to each merged block
+    apply_thick_outline(summary_ws, row, 3, 4)
+    apply_thick_outline(summary_ws, row, 5, 6)
+    apply_thick_outline(summary_ws, row, 7, 8)
+    apply_thick_outline(summary_ws, row, 9, 10)
+    apply_thick_outline(summary_ws, row, 11, 12)
+
     row += 1
 
-
-# Totals row
+# --- Totals row (don’t merge these, but keep style) ---
 summary_ws[f"B{row}"] = "TOTAL:"
 summary_ws[f"C{row}"] = f"=SUM(C{start_row}:C{row-1})"
 summary_ws[f"E{row}"] = f"=SUM(E{start_row}:E{row-1})"
 summary_ws[f"G{row}"] = f"=SUM(G{start_row}:G{row-1})"
 
-for col in ['B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q']:
-    summary_ws[f"{col}21"].fill = subheader_fill
-    summary_ws[f"{col}21"].font = subheader_font
-    summary_ws[f"{col}21"].alignment = subleft_bold
+for col_idx in range(2, 12):  # B..K
+    cell = summary_ws.cell(row=row, column=col_idx)
+    cell.fill = subheader_fill
+    cell.font = subheader_font
+    cell.alignment = center_bold
 
-# Weighted overall score formula in D7
-weights_formula_parts = []
-for r in range(start_row, row):
-    weights_formula_parts.append(f"I{r}*(C{r}/100)")
-summary_ws['I21'] = f"={'+'.join(weights_formula_parts)}"
-summary_ws['I21'].number_format = '0.00%'
+# Weighted overall score in totals row & D7
+weights_formula_parts = [f"I{r}*(C{r}/100)" for r in range(start_row, row)]
+summary_ws['I' + str(row)] = f"={'+'.join(weights_formula_parts)}"
+summary_ws['I' + str(row)].number_format = '0.00%'
+
+
+summary_ws['D7'] = f"=I{row}"
 
 # ---------------------------
 # RANGES TABLE
 # ---------------------------
 ranges_header = row + 2
 ranges_start = row + 3
+
 summary_ws.merge_cells(f"B{ranges_header}:Q{ranges_header}")
 summary_ws[f"B{ranges_header}"] = "RANGES"
 summary_ws[f"B{ranges_header}"].fill = header_fill
@@ -603,25 +666,43 @@ summary_ws[f"B{ranges_header}"].font = header_font
 summary_ws[f"B{ranges_header}"].alignment = left_bold
 
 
+# === Category headers (go in merged blocks) ===
+ranges_categories = ["CONCENTRATION", "pH", "TEMPERATURE", "PRESSURE", "FLOW RATE"]
+category_blocks = [(3, 5), (6, 8), (9, 11), (12, 14), (15, 17)]  # (start_col, end_col)
 
-
-ranges_subheaders = ["Chemical", "Min Concentration", "Max Concentration", "Avg Concentration",
-                  "Min pH", "Max pH", "Avg pH",
-                  "Min Temp", "Max Temp", "Avg Temp",
-                  "Min Press", "Max Press", "Avg Press",
-                  "Min Flow", "Max Flow", "Avg Flow"]
-
-for col_idx, header in enumerate(ranges_subheaders, start=2):
-    cell = summary_ws.cell(row=ranges_start+1, column=col_idx)
-    cell.value = header
-    cell.fill = light_fill
+for cat, (start_col, end_col) in zip(ranges_categories, category_blocks):
+    # Merge the block
+    summary_ws.merge_cells(
+        start_row=ranges_header+1, start_column=start_col,
+        end_row=ranges_header+1, end_column=end_col
+    )
+    # Put the category name in the first cell of the block
+    cell = summary_ws.cell(row=ranges_header+1, column=start_col, value=cat)
+    cell.fill = subheader_fill
     cell.font = subheader_font
-    cell.alignment = subleft_bold
+    cell.alignment = center_bold
 
+# === Subheaders row (Min / Max / Average under each merged block) ===
+summary_ws.cell(row=ranges_start+1, column=2, value="")
+summary_ws.cell(row=ranges_start, column=2).fill = subheader_fill
+summary_ws.cell(row=ranges_start+1, column=2).fill = light_fill
+subheaders = ["MIN", "MAX", "AVERAGE"]
+
+for start_col, _ in category_blocks:
+    for offset, sub in enumerate(subheaders):
+        col = start_col + offset
+        cell = summary_ws.cell(row=ranges_start+1, column=col, value=sub)
+        cell.fill = light_fill
+        cell.font = subheader_font
+        cell.alignment = left_bold
+
+
+
+# Fill in range values per chemical
 r = ranges_start + 2
 for chem in chemicals:
     chem_df = df[df['CHEMICAL'] == chem]
-    summary_ws.cell(row=r, column=2, value=chem)
+    summary_ws.cell(row=r, column=2, value=chem).fill = light_fill
     summary_ws.cell(row=r, column=3, value=chem_df['CONCENTRATION'].min())
     summary_ws.cell(row=r, column=4, value=chem_df['CONCENTRATION'].max())
     summary_ws.cell(row=r, column=5, value=chem_df['CONCENTRATION'].mean())
@@ -640,15 +721,134 @@ for chem in chemicals:
     r += 1
 
 
-for row in ['11','12','13','14','15','16','17','18','19','20']:
-    summary_ws[f"B{row}"].fill = light_fill 
-    summary_ws[f"B{row}"].font = subheader_font
-    summary_ws[f"B{row}"].alignment = subleft_bold
 
-for row in ['26','27','28','29','30','31','32','33','34','35']:
-    summary_ws[f"B{row}"].fill = light_fill 
-    summary_ws[f"B{row}"].font = subheader_font
-    summary_ws[f"B{row}"].alignment = subleft_bold
+
+from openpyxl.utils import get_column_letter
+from openpyxl.styles import Border, Side
+
+ws = wb["Summary"]
+
+
+
+summary_ws['B1'] = "COMPLIANCE ANALYSIS REPORT"
+summary_ws['B1'].fill = header_fill
+summary_ws['B1'].font = header_font
+summary_ws['B1'].alignment = left_bold
+summary_ws['B9'] = "ANALYSIS SUMMARY"
+summary_ws['B9'].fill = header_fill
+summary_ws['B9'].font = header_font
+summary_ws['B9'].alignment = left_bold
+
+
+# === Set column widths ===
+ws.column_dimensions["A"].width = 0.7
+ws.column_dimensions["B"].width = 14
+for col in range(3, 18):  # C=3 through Q=17
+    ws.column_dimensions[get_column_letter(col)].width = 9.4
+
+# === Define border style ===
+thick_border = Border(
+    left=Side(style="thick"),
+    right=Side(style="thick"),
+    top=Side(style="thick"),
+    bottom=Side(style="thick")
+)
+
+def apply_border(ws, cell_range):
+    rows = ws[cell_range]
+    for row in rows:
+        for cell in row:
+            # Apply borders only to edges
+            if cell.row == rows[0][0].row:  # top row
+                cell.border = cell.border + Border(top=thick_border.top)
+            if cell.row == rows[-1][0].row:  # bottom row
+                cell.border = cell.border + Border(bottom=thick_border.bottom)
+            if cell.column == rows[0][0].column:  # left col
+                cell.border = cell.border + Border(left=thick_border.left)
+            if cell.column == rows[0][-1].column:  # right col
+                cell.border = cell.border + Border(right=thick_border.right)
+
+# === Fixed border ranges ===
+apply_border(ws, "B1:Q1")
+apply_border(ws, "B3:E7")
+apply_border(ws, "N3:Q7")
+
+# === Dynamic border ranges ===
+num_chemicals = len(chemicals)  # <-- replace with however you track chemicals
+
+# First dynamic block (starts row 9)
+start1, end1 = 9, 9 + num_chemicals + 2  # +1 for header row
+apply_border(ws, f"B{start1}:Q{end1}")
+
+# Second dynamic block (starts row right after + 2 rows spacing)
+start2 = end1 + 2
+end2 = start2 + num_chemicals + 2
+apply_border(ws, f"B{start2}:Q{end2}")
+
+
+from openpyxl.styles import Border, Side
+
+# Define thick border
+thick_side = Side(border_style="thick", color="000000")
+
+def apply_thick_outline(ws, start_row, end_row, start_col, end_col):
+    """Draws a thick box around the given range."""
+    for row in range(start_row, end_row+1):
+        for col in range(start_col, end_col+1):
+            cell = ws.cell(row=row, column=col)
+
+            # Start with existing border, then override where needed
+            left   = cell.border.left
+            right  = cell.border.right
+            top    = cell.border.top
+            bottom = cell.border.bottom
+
+            if col == start_col:
+                left = thick_side
+            if col == end_col:
+                right = thick_side
+            if row == start_row:
+                top = thick_side
+            if row == end_row:
+                bottom = thick_side
+
+            cell.border = Border(left=left, right=right, top=top, bottom=bottom)
+
+# --- Apply to each category block ---
+category_blocks = [(3, 5), (6, 8), (9, 11), (12, 14), (15, 17)]
+
+# Assuming ranges_header is your header row (e.g., row 2),
+# and ranges_start is where chemical rows begin (e.g., row 3).
+last_row = ranges_start + num_chemicals + 1  # dynamic last chemical row
+
+for start_col, end_col in category_blocks:
+    apply_thick_outline(
+        summary_ws,
+        start_row=ranges_header+1,  # row with "MIN / MAX / AVG"
+        end_row=last_row,           # last row of chemicals
+        start_col=start_col,
+        end_col=end_col
+    )
+
+
+
+# === Merges ===
+merge_ranges = [
+    "B1:Q1",
+    "B3:C3", "B4:C4", "B5:C5", "B6:C6", "B7:C7",
+    "D3:E3", "D4:E4", "D5:E5", "D6:E6", "D7:E7",
+    "N3:Q3",
+    "N4:O4", "N5:O5", "N6:O6", "N7:O7",
+    "P4:Q4", "P5:Q5", "P6:Q6", "P7:Q7", "B9:Q9",
+    "K10:L10", "I10:J10", "G10:H10", "E10:F10", "C10:D10"
+]
+
+#"C10:D10", "E10:F10", "G10:H10", "I10:J10", "K10:L10"
+
+for rng in merge_ranges:
+    ws.merge_cells(rng)
+
+
 
 
 # Save final formatted file
