@@ -2,6 +2,7 @@ import pandas as pd
 import openpyxl
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+from openpyxl.chart import PieChart, Reference
 from tkinter import Tk, filedialog, simpledialog, Label, Entry, Button
 from datetime import datetime
 import os
@@ -374,6 +375,31 @@ def format_excel(df, save_path, user_info):
     summary_ws[f"D7"] = f"=I{row}"
     summary_ws.merge_cells(start_row=row, start_column=11, end_row=row, end_column=12)
 
+#Hardcoding the label and data for the chart to get the syntax right
+    summary_ws["S1"] = "PASS"
+    summary_ws["T1"] = "FAIL"
+    summary_ws["S2"] = 8
+    summary_ws["T2"] = 92
+
+#The chart below does not work
+#PIE CHART
+    chart = PieChart()
+    chart.title = "Pass vs Fail"
+
+    # Categories (labels) -> "PASS" and "FAIL"
+    labels = Reference(summary_ws, min_col=19, max_col=20, min_row=1, max_row=1)  # PASS/FAIL totals row
+    # Values (numbers) -> PASS total in col E, FAIL total in col G
+    data = Reference(summary_ws, min_col=19, max_col=20, min_row=2)
+
+    chart.add_data(data, titles_from_data=False)
+    chart.set_categories(labels)
+
+    # Place chart at M11, stretching down to Q(10+len(chemicals))
+    chart_cell = f"M11"
+    chart.anchor = chart_cell
+    summary_ws.add_chart(chart, chart_cell)
+
+
     # Ranges Table
     ranges_header = row + 2
     summary_ws.merge_cells(f"B{ranges_header}:Q{ranges_header}")
@@ -434,6 +460,7 @@ def format_excel(df, save_path, user_info):
     print(f"Final formatted report saved at: {save_path}")
 
 
+
 # -------------------- Main --------------------
 def main():
     csv_path = select_file()
@@ -452,6 +479,12 @@ def main():
     ranges_df = load_ranges()
     df = check_compliance(df, ranges_df)
     format_excel(df, save_path, user_info)
+    
+
+
+
+
+
 
 if __name__ == "__main__":
     main()
