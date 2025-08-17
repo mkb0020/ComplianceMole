@@ -1,11 +1,14 @@
 import pandas as pd
 import openpyxl
+import matplotlib.pyplot as plt
+from openpyxl.drawing.image import Image
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 from openpyxl.chart import PieChart, Reference
 from tkinter import Tk, filedialog, simpledialog, Label, Entry, Button
 from datetime import datetime
 import os
+import io
 
 # -------------------- Constants --------------------
 CANONICAL_REPORT_HEADERS = [
@@ -189,6 +192,30 @@ def check_compliance(df: pd.DataFrame, ranges_df: pd.DataFrame) -> pd.DataFrame:
     
     return df
 
+
+def add_pass_fail_chart(ws, pass_count, fail_count, cell="M11"): # Build matplotlib pie chart
+    dpi = 96  # Match Excel's rendering DPI
+    width_in = 3.58
+    height_in = 2.01
+
+    fig, ax = plt.subplots(figsize=(width_in, height_in))  # figsize is (width, height)
+    ax.pie([pass_count, fail_count], labels=["Pass", "Fail"], autopct="%1.0f%%",
+        colors=["#C2CAE8", "#8D9FCD"], startangle=90)
+    ax.axis("equal")
+
+    img_bytes = io.BytesIO()
+    plt.savefig(img_bytes, format="png", dpi=dpi)  # Save at 96 DPI
+    plt.close(fig)
+    img_bytes.seek(0)
+
+    img = Image(img_bytes)
+    # No need to set .width and .height — Excel will use native pixel size
+    img.anchor = cell
+    ws.add_image(img)
+
+
+
+
 # -------------------- Excel Formatting --------------------
 #summary_ws = wb.create_sheet("Sample Data")
 def format_excel(df, save_path, user_info):
@@ -227,6 +254,12 @@ def format_excel(df, save_path, user_info):
     white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
     thin = Side(style="thin", color="000000")
     thick = Side(style="thick", color="000000")
+    double_bottom = Side(border_style="double", color="000000")  # black double line
+    indent_align = Alignment(indent=1)
+
+
+
+
     
     # Auto column width for Sample Data
     for col in ws.columns:
@@ -289,12 +322,13 @@ def format_excel(df, save_path, user_info):
             if not cell.value and not cell.fill.fgColor.rgb:
                 cell.fill = white_fill
 
-    # Summary Info
+    # Merge header and set title
     summary_ws.merge_cells("B1:Q1")
     summary_ws["B1"] = "COMPLIANCE ANALYSIS REPORT"
     for fill, font, align in [styles["header"]]:
         summary_ws["B1"].fill, summary_ws["B1"].font, summary_ws["B1"].alignment = fill, font, align
 
+    # Info dictionaries
     summary_info = {
         "B3": "Completed By:", "D3": "MK Barriault",
         "B4": "Date:", "D4": "8/15/2025",
@@ -307,8 +341,8 @@ def format_excel(df, save_path, user_info):
         "N5": "Temperature =", "P5": "Celcius", "N6": "Pressure =", "P6": "kPa",
         "N7": "FlowRate =", "P7": "L/min"
     }
-    
-    # Apply merges for summary info and units
+
+    # Merge ranges
     merge_ranges = [
         "B3:C3", "B4:C4", "B5:C5", "B6:C6", "B7:C7",
         "D3:E3", "D4:E4", "D5:E5", "D6:E6", "D7:E7",
@@ -317,13 +351,22 @@ def format_excel(df, save_path, user_info):
     ]
     for rng in merge_ranges:
         summary_ws.merge_cells(rng)
-    
-    for cell, value in {**summary_info, **units_info}.items():
-        summary_ws[cell] = value
-        style_key = "light" if cell.startswith(("B", "N")) else "white"
-        if cell == "N3": style_key = "subheader"
-        for fill, font, align in [styles[style_key]]:
-            summary_ws[cell].fill, summary_ws[cell].font, summary_ws[cell].alignment = fill, font, align
+
+    # Apply values, borders, and styles
+    all_info = {**summary_info, **units_info}
+    for cell, value in all_info.items():
+        c = summary_ws[cell]
+        c.value = value
+        c.border = Border(top=thin, bottom=thin, left=thin, right=thin)
+        style_key = "subheader" if cell == "N3" else "light" if cell.startswith(("B", "N")) else "white"
+        fill, font, align = styles[style_key]
+        c.fill, c.font, c.alignment = fill, font, align
+
+    # Apply top/bottom borders to merged cells (C, E, Q columns)
+    for col in ["C", "E", "O", "Q"]:
+        for row in range(3, 8):
+            cell = f"{col}{row}"
+            summary_ws[cell].border = Border(top=thin, bottom=thin)
 
     # Chemicals Table
     start_row = 11
@@ -357,7 +400,7 @@ def format_excel(df, save_path, user_info):
             cell = summary_ws.cell(row, start)
             cell.value, cell.fill, cell.alignment = val, white_fill, Alignment(horizontal="center", vertical="center")
             if fmt: cell.number_format = fmt[0]
-        
+
         row += 1
 
     # Totals Row
@@ -374,30 +417,29 @@ def format_excel(df, save_path, user_info):
     summary_ws[f"I{row}"].number_format = "0.00%"
     summary_ws[f"D7"] = f"=I{row}"
     summary_ws.merge_cells(start_row=row, start_column=11, end_row=row, end_column=12)
+ 
+    #Pie chart via Matplotlib
+    pass_count = (df["STATUS"] == "COMPLIANT").sum()        
+    fail_count = (df["STATUS"] == "NON-COMPLIANT").sum()
+    summary_ws = wb["Summary"]  # or whichever sheet you want
+    add_pass_fail_chart(summary_ws, pass_count, fail_count, cell="M11")
 
-#Hardcoding the label and data for the chart to get the syntax right
-    summary_ws["S1"] = "PASS"
-    summary_ws["T1"] = "FAIL"
-    summary_ws["S2"] = 8
-    summary_ws["T2"] = 92
+    print(pass_count)
+    print(fail_count)
+    print(start_row)
+    print(row-1)
 
-#The chart below does not work
-#PIE CHART
-    chart = PieChart()
-    chart.title = "Pass vs Fail"
+    # ----  fills ----
+    gray_fill = PatternFill(start_color="ADADAD", end_color="ADADAD", fill_type="solid") #Grey
+    summary_ws["B10"].fill = gray_fill # Row 10 header fills
+    for col in range(13, 18):  # M=13, Q=17
+        summary_ws.cell(row=10, column=col).fill = gray_fill
 
-    # Categories (labels) -> "PASS" and "FAIL"
-    labels = Reference(summary_ws, min_col=19, max_col=20, min_row=1, max_row=1)  # PASS/FAIL totals row
-    # Values (numbers) -> PASS total in col E, FAIL total in col G
-    data = Reference(summary_ws, min_col=19, max_col=20, min_row=2)
+    summary_ws[f"B{row}"].fill = gray_fill # Bottom row fills (row = number of chemicals + 10)
+    for col in range(11, 18):  # K=11, Q=17
+        summary_ws.cell(row=row, column=col).fill = gray_fill
 
-    chart.add_data(data, titles_from_data=False)
-    chart.set_categories(labels)
 
-    # Place chart at M11, stretching down to Q(10+len(chemicals))
-    chart_cell = f"M11"
-    chart.anchor = chart_cell
-    summary_ws.add_chart(chart, chart_cell)
 
 
     # Ranges Table
@@ -430,11 +472,32 @@ def format_excel(df, save_path, user_info):
                 summary_ws.cell(r, start + j).alignment = Alignment(horizontal="center", vertical="center")
         r += 1
 
+    
+    rBlank = ranges_header + 1
+    summary_ws.cell(rBlank, 2).fill = PatternFill(start_color="ADADAD", end_color="ADADAD", fill_type="solid")
+    summary_ws.cell(rBlank+1, 2).fill = PatternFill(start_color="E8E8E8", end_color="E8E8E8", fill_type="solid")
+    
+
     # Column Widths and Borders
     summary_ws.column_dimensions["A"].width = 0.7
     summary_ws.column_dimensions["B"].width = 14
     for col in range(3, 18):
         summary_ws.column_dimensions[get_column_letter(col)].width = 9.4
+
+
+    def apply_thin_border(ws, cell_range):
+        rows = ws[cell_range]
+        for row in rows:
+            for cell in row:
+                borders = {k: cell.border.__dict__[k] for k in ("left", "right", "top", "bottom")}
+                if cell.column == rows[0][0].column: borders["left"] = thin
+                if cell.column == rows[0][-1].column: borders["right"] = thin
+                cell.border = Border(**borders)
+                
+    for start, end in category_blocks:
+        apply_thin_border(summary_ws, f"{get_column_letter(start)}{ranges_header+1}:{get_column_letter(end)}{r-1}")
+
+
 
     def apply_thick_border(ws, cell_range):
         rows = ws[cell_range]
@@ -447,11 +510,31 @@ def format_excel(df, save_path, user_info):
                 if cell.column == rows[0][-1].column: borders["right"] = thick
                 cell.border = Border(**borders)
 
-    for rng in ["B1:Q1", "B3:E7", "N3:Q7", "B9:Q9", f"C10:Q{row}", f"B{ranges_header}:Q{ranges_header+len(chemicals)+2}"]:
+    for rng in ["B1:Q1", "B3:E7", "N3:Q7", "B9:Q9", f"B10:Q{row}", f"M11:Q{row-1}", f"B{ranges_header}:Q{ranges_header+len(chemicals)+2}", f"B{ranges_header}:Q{ranges_header}"]:
         apply_thick_border(summary_ws, rng)
 
-    for start, end in category_blocks:
-        apply_thick_border(summary_ws, f"{get_column_letter(start)}{ranges_header+1}:{get_column_letter(end)}{r-1}")
+
+
+
+    def apply_double_bottom(ws, cell_range):
+        rows = ws[cell_range]
+        for row in rows:
+            for cell in row:
+                borders = {k: cell.border.__dict__[k] for k in ("left", "right", "top", "bottom")}
+                if cell.row == rows[-1][0].row: borders["bottom"] = double_bottom
+                if cell.column == rows[0][0].column: borders["left"] = thick
+                if cell.column == rows[0][-1].column: borders["right"] = thick
+                cell.border = Border(**borders)
+
+    for rng in ["N3:Q3","B10:Q10",f"B{ranges_header-3}:Q{ranges_header-3}",f"B{ranges_header+2}:Q{ranges_header+2}"]:
+        apply_double_bottom(summary_ws, rng)
+
+    #For col in range(2, 18): 
+    #    cell = summary_ws.cell(row=10, column=col)
+    #    cell.border = double_bottom
+
+
+
 
     # Ensure Summary is the active sheet
     wb.active = wb["Summary"]
