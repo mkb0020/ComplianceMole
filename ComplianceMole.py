@@ -66,12 +66,13 @@ def get_user_info():
         info["LastIntl"] = entry_last.get()[:1]
         info["CompanyName"] = entry_company.get()
         info["DateToday"] = datetime.today().strftime("%Y%m%d")
+        info["CompletedBy"] = f"{info['FirstName']} {info['MiddleName']} {info['LastName']}".strip()
 
         root.quit()    # exit the Tk loop
         root.destroy() # close the window
 
     root = Tk()
-    root.title("User Info")
+    root.title("Please Enter the Following")
 
     Label(root, text="First Name:").grid(row=0, column=0, sticky="e")
     entry_first = Entry(root)
@@ -214,8 +215,6 @@ def add_pass_fail_chart(ws, pass_count, fail_count, cell="M11"): # Build matplot
     ws.add_image(img)
 
 
-
-
 # -------------------- Excel Formatting --------------------
 #summary_ws = wb.create_sheet("Sample Data")
 def format_excel(df, save_path, user_info):
@@ -256,10 +255,6 @@ def format_excel(df, save_path, user_info):
     thick = Side(style="thick", color="000000")
     double_bottom = Side(border_style="double", color="000000")  # black double line
     indent_align = Alignment(indent=1)
-
-
-
-
     
     # Auto column width for Sample Data
     for col in ws.columns:
@@ -282,7 +277,7 @@ def format_excel(df, save_path, user_info):
         cell.font = Font(name="Aptos Narrow", bold=True, size=10.5)
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
         cell.border = Border(bottom=Side(style="double", color="000000"))
-    ws.row_dimensions[2].height = 35
+    ws.row_dimensions[2].height = 25
 
     # Sample Data: Data rows
     for row in range(3, ws.max_row + 1):
@@ -329,13 +324,16 @@ def format_excel(df, save_path, user_info):
         summary_ws["B1"].fill, summary_ws["B1"].font, summary_ws["B1"].alignment = fill, font, align
 
     # Info dictionaries
+    num_rows = len(df)
+    date_obj = datetime.strptime(user_info["DateToday"], "%Y%m%d")
     summary_info = {
-        "B3": "Completed By:", "D3": "MK Barriault",
-        "B4": "Date:", "D4": "8/15/2025",
-        "B5": "Company:", "D5": "Ion Labs",
-        "B6": "Total Samples:", "D6": "100",
+        "B3": "Completed By:", "D3": user_info["CompletedBy"],
+        "B4": "Date:", "D4": date_obj,
+        "B5": "Company:", "D5": user_info["CompanyName"],
+        "B6": "Total Samples:", "D6": num_rows,
         "B7": "Score:", "D7": ""
     }
+    summary_ws["D4"].number_format = "DD-MMM-YYYY"
     units_info = {
         "N3": "UNITS OF MEASURE", "N4": "Concentration =", "P4": "ppm",
         "N5": "Temperature =", "P5": "Celcius", "N6": "Pressure =", "P6": "kPa",
@@ -416,8 +414,11 @@ def format_excel(df, save_path, user_info):
     summary_ws[f"I{row}"] = weights
     summary_ws[f"I{row}"].number_format = "0.00%"
     summary_ws[f"D7"] = f"=I{row}"
+    summary_ws[f"D7"].number_format = "0.00%"
     summary_ws.merge_cells(start_row=row, start_column=11, end_row=row, end_column=12)
  
+    
+
     #Pie chart via Matplotlib
     pass_count = (df["STATUS"] == "COMPLIANT").sum()        
     fail_count = (df["STATUS"] == "NON-COMPLIANT").sum()
@@ -545,11 +546,30 @@ def format_excel(df, save_path, user_info):
 
 
 # -------------------- Main --------------------
-def main():
-    csv_path = select_file()
-    if not csv_path:
-        print("No file selected. Exiting.")
-        return
+import sys
+import tkinter as tk
+from tkinter import filedialog, Tk
+def main():   
+    # Step 1: Get file path from drag-and-drop or file picker
+    if len(sys.argv) > 1:
+        # Drag-and-drop case
+        csv_path = sys.argv[1]
+        if not os.path.isfile(csv_path):
+            print("The dropped file is not valid.")
+            sys.exit(1)
+    else:
+        # No drag-and-drop → open file picker
+        root = tk.Tk()
+        root.withdraw()  # hide main Tkinter window
+        csv_path = filedialog.askopenfilename(
+            title="Select CSV file",
+            filetypes=[("CSV Files", "*.csv")]
+        )
+        if not csv_path:
+            print("No file selected. Exiting.")
+            sys.exit(0)
+
+    print(f"Processing file: {csv_path}")
 
     df = pd.read_csv(csv_path)
     user_info = get_user_info()
@@ -563,11 +583,6 @@ def main():
     df = check_compliance(df, ranges_df)
     format_excel(df, save_path, user_info)
     
-
-
-
-
-
 
 if __name__ == "__main__":
     main()
