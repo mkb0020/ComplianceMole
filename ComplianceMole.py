@@ -54,6 +54,9 @@ def _norm(s: str) -> str:
     return "".join(c if c.isalnum() or c == "_" else "_" for c in s).strip("_")
 
 # -------------------- File Handling --------------------
+from tkinter import Tk, Label, Entry, Button
+from datetime import datetime
+
 def get_user_info():
     info = {}
 
@@ -68,32 +71,53 @@ def get_user_info():
         info["DateToday"] = datetime.today().strftime("%Y%m%d")
         info["CompletedBy"] = f"{info['FirstName']} {info['MiddleName']} {info['LastName']}".strip()
 
-        root.quit()    # exit the Tk loop
-        root.destroy() # close the window
+        root.quit()
+        root.destroy()
 
     root = Tk()
     root.title("Please Enter the Following")
 
-    Label(root, text="First Name:").grid(row=0, column=0, sticky="e")
-    entry_first = Entry(root)
-    entry_first.grid(row=0, column=1)
+    # Set form size and background color
+    root.geometry("440x200")  
+    root.configure(bg="#C2CAE8")  # light blue background
 
-    Label(root, text="Middle Name:").grid(row=1, column=0, sticky="e")
-    entry_middle = Entry(root)
-    entry_middle.grid(row=1, column=1)
+    label_style = {"bg": "#C2CAE8", "fg": "#000000", "font": ("Courier New", 11, "bold")}
+    entry_style = {"bg": "#ffffff", "fg": "#000000", "font": ("Arial", 11)}
 
-    Label(root, text="Last Name:").grid(row=2, column=0, sticky="e")
-    entry_last = Entry(root)
-    entry_last.grid(row=2, column=1)
+    Label(root, text="First Name:", **label_style).grid(row=0, column=0, sticky="e", padx=10, pady=5)
+    entry_first = Entry(root, **entry_style)
+    entry_first.grid(row=0, column=1, padx=10, pady=5)
 
-    Label(root, text="Company Name:").grid(row=3, column=0, sticky="e")
-    entry_company = Entry(root)
-    entry_company.grid(row=3, column=1)
+    Label(root, text="Middle Name (optional):", **label_style).grid(row=1, column=0, sticky="e", padx=10, pady=5)
+    entry_middle = Entry(root, **entry_style)
+    entry_middle.grid(row=1, column=1, padx=10, pady=5)
 
-    Button(root, text="Submit", command=on_submit).grid(row=4, column=0, columnspan=2, pady=10)
+    Label(root, text="Last Name:", **label_style).grid(row=2, column=0, sticky="e", padx=10, pady=5)
+    entry_last = Entry(root, **entry_style)
+    entry_last.grid(row=2, column=1, padx=10, pady=5)
+
+    Label(root, text="Company Name:", **label_style).grid(row=3, column=0, sticky="e", padx=10, pady=5)
+    entry_company = Entry(root, **entry_style)
+    entry_company.grid(row=3, column=1, padx=10, pady=5)
+
+    Button(
+        root, 
+        text="Submit", 
+        command=on_submit, 
+        bg="#CBCEDF", 
+        fg="#000000", 
+        font=("Courier New", 11),
+        relief="raised",
+        padx=10, pady=5
+    ).grid(row=4, column=0, columnspan=2, pady=20)
+
+    # Center form on screen
+    root.eval('tk::PlaceWindow . center')
 
     root.mainloop()
     return info
+
+
 
 def select_file(title="Select CSV File", filetypes=[("CSV Files", "*.csv")]):
     """Select file via dialog."""
@@ -277,7 +301,14 @@ def format_excel(df, save_path, user_info):
         cell.font = Font(name="Aptos Narrow", bold=True, size=10.5)
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
         cell.border = Border(bottom=Side(style="double", color="000000"))
-    ws.row_dimensions[2].height = 25
+    ws.row_dimensions[2].height = 40
+
+        # Filter
+        # Add AutoFilter to headers in Sample Data
+    max_col = ws.max_column
+    ws.auto_filter.ref = f"A2:{get_column_letter(max_col)}{ws.max_row}"
+
+
 
     # Sample Data: Data rows
     for row in range(3, ws.max_row + 1):
